@@ -1,0 +1,30 @@
+Constructing Messages
+In Flower, the server and clients communicate by sending and receiving Message objects. A Message carries a RecordDict as its main payload. The RecordDict is like a Python dictionary that can contain multiple records of different types. There are three main types of records:
+
+ArrayRecord: Contains model parameters as a dictionary of NumPy arrays
+
+MetricRecord: Contains training or evaluation metrics as a dictionary of integers, floats, lists of integers, or lists of floats.
+
+ConfigRecord: Contains configuration parameters as a dictionary of integers, floats, strings, booleans, or bytes. Lists of these types are also supported.
+
+
+
+from flwr.app import ArrayRecord, MetricRecord, ConfigRecord, RecordDict
+
+# ConfigRecord can be used to communicate configs between ServerApp and ClientApp
+# They can hold scalars, but also strings and booleans
+config = ConfigRecord(
+    {"batch_size": 32, "use_augmentation": True, "data-path": "/my/dataset"}
+)
+
+# MetricRecords expect scalar-based metrics (i.e. int/float/list[int]/list[float])
+# By limiting the types Flower can aggregate MetricRecords automatically
+metrics = MetricRecord({"accuracy": 0.9, "losses": [0.1, 0.001], "perplexity": 2.31})
+
+# ArrayRecord objects are designed to communicate arrays/tensors/weights from ML models
+array_record = ArrayRecord(my_model.state_dict())  # for a PyTorch model
+array_record_other = ArrayRecord(my_model.to_numpy_ndarrays())  # for other ML models
+
+# A RecordDict is like a dictionary that holds named records.
+# This is the main payload of a Message
+rd = RecordDict({"my-config": config, "metrics": metrics, "my-model": array_record})

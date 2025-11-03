@@ -12,3 +12,6 @@ https://journalofcloudcomputing.springeropen.com/articles/10.1186/s13677-024-006
 
 4. Towards Optimal Customized Architecture for Heterogeneous Federated Learning with Contrastive Cloud-Edge Model Decoupling
 https://www.catalyzex.com/paper/towards-optimal-customized-architecture-for?utm_source=chatgpt.coms
+
+# Flower tutorial
+https://flower.ai/docs/framework/tutorial-series-get-started-with-flower-pytorch.html
