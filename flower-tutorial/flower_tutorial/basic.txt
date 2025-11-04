@@ -28,3 +28,43 @@ array_record_other = ArrayRecord(my_model.to_numpy_ndarrays())  # for other ML m
 # A RecordDict is like a dictionary that holds named records.
 # This is the main payload of a Message
 rd = RecordDict({"my-config": config, "metrics": metrics, "my-model": array_record})
+
+
+
+
+num-server-rounds = 3
+Number of federated learning rounds the server will execute. Each round = one full cycle of client selection -> local training -> aggregation
+
+fraction-train = 0.5
+Fraction of clients participating in each round of training. If you have 10 clients, 0.5 -> 5 clients selected per round.
+
+local-epochs = 1
+Number of local epochs each selected client trains on its local data per round
+
+lr = 0.01
+Learning rate for the local optimizer used by each client
+
+🌍 What is a “Partition”?
+the term "partition" in federated learning(and in Flower framework) refers to how the dataset is divided(partitioned) among multiple clients. This concept is fundamental because data in not centralized in FL, each client owns its own portion of data (called a "partition")
+
+In federated learning, a partition = one client's local dataset.
+if you have a dataset like MNIST(60,000 samples) and 10 clients, you might partition it into 10 sunsets, each containing 6,000 samples.
+    Each subset is a partition 
+    Each client only sees and trains its own partition
+
+So instead of: centralized => One dataset shared bt automatically
+federated setup: Client 1 => Data partition #1
+                 Client 2 => Data partition #2
+                 ...
+                 Client N => Data partition #N
+
+🧩 Why Partitioning Matters
+
+Partitioning defines how heterogeneous or diverse your clients’ data are.
+There are two main styles:
+    1.IID(Independent and Identically Distributed): Each client gets a random sample of the overall dataset(same distribution)
+    example: Each client has digits 0-9 equally in MNIST
+
+    2. Non-IID: Clients get different distributions, simulates real-world scenarios
+    example: Client 1 has mostly digit 0-2, Client 2 has 3-5, etc
+👉 Most real-world FL systems are Non-IID, because users’ data distributions differ.
