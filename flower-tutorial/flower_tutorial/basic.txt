@@ -1,4 +1,7 @@
-Constructing Messages
+# Federated Learning with Flower
+In federated learning, the server sends global model parameters to the client, and the client updates the local model with parameters received from the server. It then trains the model on the local data (which changes the model parameters locally) and sends the updated/changed model parameters back to the server (or, alternatively, it sends just the gradients back to the server, not the full model parameters).
+
+# Constructing Messages
 In Flower, the server and clients communicate by sending and receiving Message objects. A Message carries a RecordDict as its main payload. The RecordDict is like a Python dictionary that can contain multiple records of different types. There are three main types of records:
 
 ArrayRecord: Contains model parameters as a dictionary of NumPy arrays
@@ -68,3 +71,18 @@ There are two main styles:
     2. Non-IID: Clients get different distributions, simulates real-world scenarios
     example: Client 1 has mostly digit 0-2, Client 2 has 3-5, etc
 👉 Most real-world FL systems are Non-IID, because users’ data distributions differ.
+
+
+
+# Define the Flower ClientApp
+Federated learning systems consist of a server and multiple nodes or clients. In Flower, we create a ServerApp and a ClientApp to run the server-side and client-side code, respectively.
+
+The core functionality of the ClientApp is to perform some action with the local data that the node it runs from (e.g. an edge device, a server in a data center, or a laptop) has access to. In this tutorial such action is to train and evaluate the small CNN model defined earlier using the local training and validation data.
+
+# Training
+We can define how the ClientApp performs training by wrapping a function with the @app.train() decorator. In this case we name this function train because we’ll use it to train the model on the local data. The function always expects two arguments:
+A Message: The message received from the server. It contains the model parameters and any other configuration information sent by the server.
+
+A Context: The context object that contains information about the node executing the ClientApp and about the current run.
+
+Through the context you can retrieve the config settings defined in the pyproject.toml of your app. The context can be used to persist the state of the client across multiple calls to train or evaluate. In Flower, ClientApps are ephemeral objects that get instantiated for the execution of one Message and destroyed when a reply is communicated back to the server.
