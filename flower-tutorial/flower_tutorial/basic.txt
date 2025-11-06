@@ -47,7 +47,7 @@ Number of local epochs each selected client trains on its local data per round
 lr = 0.01
 Learning rate for the local optimizer used by each client
 
-🌍 What is a “Partition”?
+What is a “Partition”?
 the term "partition" in federated learning(and in Flower framework) refers to how the dataset is divided(partitioned) among multiple clients. This concept is fundamental because data in not centralized in FL, each client owns its own portion of data (called a "partition")
 
 In federated learning, a partition = one client's local dataset.
@@ -61,8 +61,7 @@ federated setup: Client 1 => Data partition #1
                  ...
                  Client N => Data partition #N
 
-🧩 Why Partitioning Matters
-
+Why Partitioning Matters
 Partitioning defines how heterogeneous or diverse your clients’ data are.
 There are two main styles:
     1.IID(Independent and Identically Distributed): Each client gets a random sample of the overall dataset(same distribution)
@@ -70,19 +69,81 @@ There are two main styles:
 
     2. Non-IID: Clients get different distributions, simulates real-world scenarios
     example: Client 1 has mostly digit 0-2, Client 2 has 3-5, etc
-👉 Most real-world FL systems are Non-IID, because users’ data distributions differ.
+Most real-world FL systems are Non-IID, because users’ data distributions differ.
 
 
 
-# Define the Flower ClientApp
+# 1. Define the Flower ClientApp
 Federated learning systems consist of a server and multiple nodes or clients. In Flower, we create a ServerApp and a ClientApp to run the server-side and client-side code, respectively.
 
 The core functionality of the ClientApp is to perform some action with the local data that the node it runs from (e.g. an edge device, a server in a data center, or a laptop) has access to. In this tutorial such action is to train and evaluate the small CNN model defined earlier using the local training and validation data.
 
-# Training
+# 1.1 Training
 We can define how the ClientApp performs training by wrapping a function with the @app.train() decorator. In this case we name this function train because we’ll use it to train the model on the local data. The function always expects two arguments:
+
 A Message: The message received from the server. It contains the model parameters and any other configuration information sent by the server.
 
 A Context: The context object that contains information about the node executing the ClientApp and about the current run.
 
 Through the context you can retrieve the config settings defined in the pyproject.toml of your app. The context can be used to persist the state of the client across multiple calls to train or evaluate. In Flower, ClientApps are ephemeral objects that get instantiated for the execution of one Message and destroyed when a reply is communicated back to the server.
+
+
+Once training is completed, the ClientApp constructs a reply Message. This reply typically includes a RecordDict with two records:
+
+An ArrayRecord containing the updated model parameters
+A MetricRecord with relevant metrics (in this case, the training loss and the number of examples used for training)
+
+Returning the number of examples under the "num-examples" key is required, because strategies such as FedAvg used by the ServerApp rely on this key to aggregate both models and metrics by default, unless you override the weighted_by_key argument (for example: FedAvg(weighted_by="my-different-key")).
+
+# 1.2 Evaluation
+In a typical federated learning setup, the ClientApp would also implement an @app.evaluate() function to evaluate the model received from the ServerApp on local validation data. This is especially useful to monitor the performance of the global model on each client during training. The implementation of the evaluate function is very similar to the train function, except that it calls the test_fn function defined earlier in this tutorial (which implements the PyTorch evaluation loop) and it returns a Message containing only a MetricRecord with the evaluation metrics (no ArrayRecord because the model parameters are not updated during evaluation). Here’s how the evaluate function looks like
+
+
+
+# Define the Flower ServerApp
+On the server side, we need to configure a strategy which encapsulates the federated learning approach/algorithm, for example, Federated Averaging (FedAvg). Flower has a number of built-in strategies, but we can also use our own strategy implementations to customize nearly all aspects of the federated learning approach. For this tutorial, we use the built-in FedAvg implementation and customize it slightly by specifying the fraction of connected nodes to involve in a round of training.
+
+To construct a ServerApp, we define its @app.main() method. This method receives as input arguments:
+    a Grid object that will be used to interface with the nodes running the ClientApp to involve them in a round of train/evaluate/query or other.
+
+    a Context object that provides access to the run configuration.
+
+
+# Run the training
+This will execute the federated learning simulation with 10 clients, or SuperNodes, defined in the [tool.flwr.federations.local-simulation] section in the pyproject.toml. You should expect an output log similar to this:
+
+# Behind the scenes
+When we execute flwr run, we tell Flower that there are 10 clients (options.num-supernodes = 10, where each SuperNode launches one ClientApp).
+
+Flower then asks the ServerApp to issue instructions to those nodes using the FedAvg strategy. In this example, FedAvg is configured with two key parameters:
+
+fraction-train=0.5 → select 50% of the available clients for training
+fraction-evaluate=1.0 → select 100% of the available clients for evaluation
+
+This means in our example, 5 out of 10 clients will be selected for training, and all 10 clients will later participate in evaluation.
+
+A typical round looks like this:
+
+Training
+    FedAvg randomly selects 5 clients (50% of 10).
+
+    Flower sends a TRAIN message to each selected ClientApp.
+
+    Each ClientApp calls the function decorated with @app.train(), then returns a Message containing an ArrayRecord (the updated model parameters) and a MetricRecord (the training loss and number of examples).
+
+    The ServerApp receives all replies.
+
+    FedAvg aggregates all ArrayRecord into a new ArrayRecord representing the new global model and combines all MetricRecord.
+
+Evaluation
+FedAvg selects all 10 clients (100%).
+
+Flower sends an EVALUATE message to each ClientApp.
+
+Each ClientApp calls the function decorated with @app.evaluate() and returns a Message containing a MetricRecord (the evaluation loss, accuracy, and number of examples).
+
+The ServerApp receives all replies.
+
+FedAvg aggregates all MetricRecord.
+
+Once both training and evaluation are done, the next round begins: another training step, then another evaluation step, and so on, until the configured number of rounds is reached.

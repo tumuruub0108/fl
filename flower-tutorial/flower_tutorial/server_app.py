@@ -4,6 +4,8 @@ import torch
 from flwr.app import ArrayRecord, ConfigRecord, Context
 from flwr.serverapp import Grid, ServerApp
 from flwr.serverapp.strategy import FedAvg
+# use a federated learning strategy
+from flwr.serverapp.strategy import FedAdagrad
 
 from flower_tutorial.task import Net
 
