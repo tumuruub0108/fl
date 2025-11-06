@@ -1,0 +1,9 @@
+# Server-side parameter evaluation
+Flower can evaluate the aggregated model on the server side or on the client side. Client-side and server-side evaluation are similar in some ways, but different in others.
+
+# Centralized Evaluation 
+Centralized Evaluation (or server-side evaluation) is conceptually simple: it works the same way that evaluation in centralized machine learning does. If there is a server-side dataset that can be used for evaluation purposes, then that’s great. We can evaluate the newly aggregated model after each round of training without having to send the model to clients. We’re also fortunate in the sense that our entire evaluation dataset is available at all times.
+
+
+# Federated Evaluation
+Federated Evaluation (or client-side evaluation) is more complex, but also more powerful: it doesn’t require a centralized dataset and allows us to evaluate models over a larger set of data, which often yields more realistic evaluation results. In fact, many scenarios require us to use Federated Evaluation if we want to get representative evaluation results at all. But this power comes at a cost: once we start to evaluate on the client side, we should be aware that our evaluation dataset can change over consecutive rounds of learning if those clients are not always available. Moreover, the dataset held by each client can also change over consecutive rounds. This can lead to evaluation results that are not stable, so even if we would not change the model, we’d see our evaluation results fluctuate over consecutive rounds.
