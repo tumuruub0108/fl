@@ -1,4 +1,5 @@
 # fl papers
+these papers for distributed object system course
 https://arxiv.org/pdf/1602.05629
 
 1. Personalized client‑edge‑cloud hierarchical federated learning in mobile edge computing
@@ -15,3 +16,7 @@ https://www.catalyzex.com/paper/towards-optimal-customized-architecture-for?utm_
 
 # Flower tutorial
 https://flower.ai/docs/framework/tutorial-series-get-started-with-flower-pytorch.html
+
+
+# Federated learning on non-IID
+papers...
