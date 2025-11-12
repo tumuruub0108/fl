@@ -7,6 +7,8 @@ from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import IidPartitioner
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Normalize, ToTensor
+from datasets import load_dataset
+from flwr.app import ArrayRecord, MetricRecord
 
 
 class Net(nn.Module):
@@ -96,3 +98,35 @@ def test(net, testloader, device):
     accuracy = correct / len(testloader.dataset)
     loss = loss / len(testloader)
     return loss, accuracy
+
+
+
+def central_evaluate(server_round: int, arrays: ArrayRecord) -> MetricRecord:
+    """Evaluate model on the server side."""
+
+    # Load the model and initialize it with the received weights
+    model = Net()
+    model.load_state_dict(arrays.to_torch_state_dict())
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    # Load the entire CIFAR10 test dataset
+    # It's a huggingface dataset, so we can load it directly and apply transforms
+    cifar10_test = load_dataset("cifar10", split="test")
+    pytorch_transforms = Compose(
+        [ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+    )
+
+    # Define transforms and construct DataLoader for the test set
+    def apply_transforms(batch):
+        batch["img"] = [pytorch_transforms(img) for img in batch["img"]]
+        return batch
+
+    testset = cifar10_test.with_transform(apply_transforms)
+    testloader = DataLoader(testset, batch_size=64)
+
+    # Evaluate the model on the test set
+    loss, accuracy = test(model, testloader, device)
+
+    # Return the evaluation metrics
+    return MetricRecord({"accuracy": accuracy, "loss": loss})

@@ -4,6 +4,7 @@ import torch
 from flwr.app import ArrayRecord, ConfigRecord, Context
 from flwr.serverapp import Grid, ServerApp
 from flwr.serverapp.strategy import FedAdagrad
+from flower_tutorial.task import central_evaluate
 
 from differen_strategy_fl_flwr.task import Net
 
@@ -33,6 +34,7 @@ def main(grid: Grid, context: Context) -> None:
         initial_arrays=arrays,
         train_config=ConfigRecord({"lr": lr}),
         num_rounds=num_rounds,
+        evaluate_fn=central_evaluate,
     )
 
     # Save final model to disk
